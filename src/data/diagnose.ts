@@ -750,7 +750,7 @@ export interface Risk {
   body: string;
 }
 
-export function detectRisks(a: DiagnoseAnswers, s: DiagnoseScores, layer: Layer): Risk[] {
+export function detectRisks(a: DiagnoseAnswers, _s: DiagnoseScores, layer: Layer): Risk[] {
   const risks: Risk[] = [];
 
   if (a.timeline === "1m" && layer === "L3") {
@@ -840,7 +840,7 @@ export function buildRoadmap(layer: Layer, a: DiagnoseAnswers): Phase[] {
 
 // ---------- 一句话结论 ----------
 
-export function buildHeadline(layer: Layer, s: DiagnoseScores): string {
+export function buildHeadline(layer: Layer, _s: DiagnoseScores): string {
   const tag = layer === "L1" ? "协作层" : layer === "L2" ? "经营层" : "能力层";
   if (layer === "L1") return `建议从 ${tag} 切入,2 – 4 周见到第一个实效。`;
   if (layer === "L2") return `建议直接进入 ${tag},3 个月内跑通 1 – 2 个经营场景。`;
