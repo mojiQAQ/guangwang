@@ -1,9 +1,13 @@
 // GMonkey API server
-// 在 http://localhost:8787 监听,Vite dev server 通过 proxy 转发 /api/* 到这里.
+// 开发: 监听 8787, Vite dev server 通过 proxy 转发 /api/* 过来.
+// 生产: 同一进程同时托管前端 dist/ 静态文件 + /api/*, 默认监听 PORT (8787).
 
-import express, { type Request, type Response } from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import { createHash } from "node:crypto";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import {
   db,
   insertDiagnosis,
@@ -14,6 +18,7 @@ import {
 
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8787;
+const HOST = process.env.HOST || "0.0.0.0";
 
 app.use(cors());
 app.use(express.json({ limit: "100kb" }));
@@ -196,6 +201,41 @@ app.get("/api/admin/session/:sid", (req, res) => {
   res.json({ session_id: sid, diagnoses, contacts });
 });
 
-app.listen(PORT, () => {
-  console.log(`[api] listening on http://localhost:${PORT}`);
+// ----------- 生产环境静态文件托管 -----------
+// 镜像里 /app/dist 是 vite build 产物. 容器启动时只跑这一个进程,
+// 让 Express 同时提供 SPA 静态文件 + /api/*, 不再依赖 vite dev server.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const STATIC_DIR = process.env.STATIC_DIR
+  ? resolve(process.env.STATIC_DIR)
+  : resolve(__dirname, "../dist");
+
+if (existsSync(STATIC_DIR)) {
+  console.log(`[static] serving SPA from ${STATIC_DIR}`);
+  // index.html 不走强缓存,其余资源(带 hash 文件名)可以长缓存
+  app.use(
+    express.static(STATIC_DIR, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html")) {
+          res.setHeader("Cache-Control", "no-cache");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    }),
+  );
+
+  // SPA fallback: 非 /api/* 的请求一律回退到 index.html, 交给 React Router.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/api/")) return next();
+    if (req.method !== "GET") return next();
+    res.sendFile(join(STATIC_DIR, "index.html"));
+  });
+} else {
+  console.log(`[static] no dist/ found at ${STATIC_DIR}, running API-only`);
+}
+
+app.listen(PORT, HOST, () => {
+  console.log(`[api] listening on http://${HOST}:${PORT}`);
 });

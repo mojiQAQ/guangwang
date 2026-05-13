@@ -7,7 +7,11 @@ import { fileURLToPath } from "node:url";
 import { mkdirSync, existsSync } from "node:fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_DIR = join(__dirname, "db");
+// 容器化部署时把 DB_DIR 指向挂载的 volume (例如 /app/data),
+// 保证 sqlite 文件不会随容器重建丢失.
+const DB_DIR = process.env.DB_DIR
+  ? process.env.DB_DIR
+  : join(__dirname, "db");
 const DB_PATH = join(DB_DIR, "gmonkey.sqlite");
 
 if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true });

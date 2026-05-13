@@ -1,0 +1,46 @@
+# GMonkey (guangwang) 容器编排
+#
+# 端口约定:
+#   - 容器内部固定监听 8787
+#   - 宿主机映射端口由环境变量 HOST_PORT 控制 (.env 里设)
+#     不指定时默认 8080
+#
+# 数据:
+#   - sqlite 文件挂载到当前目录下的 ./data,
+#     重建容器不会丢数据.
+#
+# 使用:
+#   docker compose up -d --build       # 启动 / 重建
+#   docker compose logs -f             # 查日志
+#   docker compose down                # 停止
+
+services:
+  guangwang:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: guangwang:latest
+    container_name: guangwang
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8787
+      - HOST=0.0.0.0
+      - DB_DIR=/app/data
+      # 用于 IP 哈希加盐, 强烈建议 .env 里覆盖成一个长随机串
+      - IP_SALT=${IP_SALT:-gmonkey-change-me-in-prod}
+    ports:
+      - "${HOST_PORT:-8080}:8787"
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          node -e "fetch('http://127.0.0.1:8787/api/health')
+            .then(r=>{if(!r.ok)process.exit(1)})
+            .catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

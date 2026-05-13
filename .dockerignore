@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+.claude
+*.log
+npm-debug.log*
+server/db/*.sqlite
+server/db/*.sqlite-wal
+server/db/*.sqlite-shm
+README.md

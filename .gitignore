@@ -30,3 +30,8 @@ server/db/*.sqlite-shm
 
 # Claude Code local settings
 .claude/
+
+# Docker runtime data & local env
+/data/
+.env
+
