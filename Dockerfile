@@ -15,9 +15,10 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.o
  && apt-get install -y --no-install-recommends python3 make g++ \
  && rm -rf /var/lib/apt/lists/*
 
-# npm 换淘宝镜像 (better-sqlite3 prebuild 也走这个)
-RUN npm config set registry https://registry.npmmirror.com \
- && npm config set sqlite3_binary_host_mirror https://npmmirror.com/mirrors/better-sqlite3
+# npm 换淘宝镜像
+# better-sqlite3 的 prebuild binary 走它自己的 mirror 环境变量
+RUN npm config set registry https://registry.npmmirror.com
+ENV BETTER_SQLITE3_BINARY_HOST_MIRROR=https://registry.npmmirror.com/-/binary/better-sqlite3
 
 COPY package.json package-lock.json ./
 RUN npm ci
